@@ -216,7 +216,7 @@ pub(super) struct Context<'s, 'a> {
     pub(super) semantic: &'s Semantic<'a>,
     pub(super) options: &'s CompressOptions,
     /// Whether each symbol is declared inside a function.
-    pub(super) in_function: &'s FxHashSet<SymbolId>,
+    pub(super) in_function: &'s [bool],
     /// Constants of global reads.
     pub(super) globals: &'s FxHashMap<NodeId, Value<'static>>,
     /// The printed length of each binding's name.
@@ -467,7 +467,7 @@ impl Reduction {
         for entry in semantic.iter_symbols() {
             // `arguments` can also name the arguments object, and a value
             // in place of `__proto__` in `{ __proto__ }` sets the prototype.
-            if !context.in_function.contains(&entry.id)
+            if !context.in_function[entry.id.index()]
                 || semantic.uses(entry.id).is_empty()
                 || matches!(
                     ast.get_wtf8(entry.symbol.name).as_bytes(),
@@ -666,7 +666,7 @@ fn is_removable_kind(
     symbol: SymbolId,
 ) -> bool {
     let semantic = context.semantic;
-    if !context.in_function.contains(&symbol) {
+    if !context.in_function[symbol.index()] {
         return false;
     }
     let mut iter = semantic.declarations(symbol);

@@ -73,7 +73,7 @@ impl Candidates {
             candidates.renames = Renames::build(ast, &semantic, &dynamic);
         }
         let mut local_vars = FxHashMap::default();
-        let mut in_function = FxHashSet::default();
+        let mut in_function = vec![false; semantic.iter_symbols().count()];
         for entry in semantic.iter_symbols() {
             // Dynamic lookup can read or write these bindings at any time.
             // Leaving them out of `in_function` also keeps reductions away.
@@ -104,15 +104,13 @@ impl Candidates {
                 let scope = semantic.scope(id);
                 if matches!(scope.kind, ScopeKind::Function | ScopeKind::FunctionBody) {
                     if scope.node != ast.root_program().node_id() {
-                        in_function.insert(entry.id);
+                        in_function[entry.id.index()] = true;
                     }
                     break;
                 }
                 ancestor = scope.parent;
             }
-            if options.unused
-                && in_function.contains(&entry.id)
-                && semantic.uses(entry.id).is_empty()
+            if options.unused && in_function[entry.id.index()] && semantic.uses(entry.id).is_empty()
             {
                 candidates.unused.insert(declaration.node);
             }
